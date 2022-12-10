@@ -1,15 +1,25 @@
 <html>
     <head>
-        <title>Basic Form</title>
+        <title>Station tool API</title>
         <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet">
     </head>
     <body>
-        <h1>Basic White Form</h1>
+        <h1>Filter high frequency sea level data</h1>
+        <p>This is just a prototype. It requires a csv file, without a header, where first column is time (matlab epoch format).And the second column is sea level data</p>
+        <p>It returns a csv file in the same format. The data will be automatically downloaded</p>
         <form method="POST" enctype="multipart/form-data">
-            <label for="username">Username:</label><br>
-            <input type="text" name="username"><br>
-            <label for="password">Password:</label><br>
-            <input type="text" name="password"><br>
+<!--            <label for="username">Username:</label><br>-->
+<!--            <input type="text" name="username"><br>-->
+<!--            <label for="password">Password:</label><br>-->
+<!--            <input type="text" name="password"><br>-->
+
+
+            <p>Convert to hourly or daily?</p>
+            <input type="radio" id="hourly" name="myfilter" value="hourly" checked>
+            <label for="hourly">Hourly</label><br>
+            <input type="radio" id="daily" name="myfilter" value="daily">
+            <label for="daily">Daily</label><br>
+            <br>
             <input type="file" name="file"><br>
             <input type="submit" value="Submit">
         </form>

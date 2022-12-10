@@ -11,7 +11,7 @@ import pandas as pd
 
 from uhslc_station_tools.extractor import load_station_data
 from uhslc_station_tools.utils import datenum2
-from uhslc_station_tools.filtering import matlab2datetime, hr_process
+from uhslc_station_tools.filtering import matlab2datetime, hr_process, day_119filt, channel_merge
 import uvicorn
 from uhslc_station_tools.sensor import Station
 
@@ -20,25 +20,44 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# password = os.environ.get('PASS')
+
 
 @app.get("/")
 async def root(request: Request):
-    station = load_station_data(['static/t1052202.dat'])
-
+    # station = load_station_data(['static/t1052202.dat'])
     return templates.TemplateResponse("basic-form.html", {"request": request})
 
 
 @app.post('/', response_class=HTMLResponse)
-async def post_basic_form(request: Request, username: str = Form(...), password: str = Form(...),
-                          file: UploadFile = File(...)):
-    print(f'username: {username}')
-    print(f'password: {password}')
-    data_obj = csv_to_obj(file.filename)
+# async def post_basic_form(request: Request, username: str = Form(...), password: str = Form(...),
+#                           file: UploadFile = File(...)):
+async def post_basic_form(request: Request, file: UploadFile = File(...), myfilter: str = Form(...)):
+    # if password != os.environ.get('PASS') or len(password) == 0:
+    #     return templates.TemplateResponse("invalid-input.html", {"request": request, "message": "Incorrect password"})
+
+    if not file.filename.endswith('.csv'):
+        return templates.TemplateResponse("invalid-input.html", {"request": request, "message": "Invalid file type"})
+    try:
+        data_obj = csv_to_obj(file.filename)
+    except:
+        return templates.TemplateResponse("invalid-input.html", {"request": request, "message": "Invalid file"})
+
     time_start = matlab2datetime(data_obj["test"]["time"][0])
     time_end = matlab2datetime(data_obj["test"]["time"][-1])
     data_hr = hr_process(data_obj, time_start, time_end)
-    csv_filename = "first_test.csv"
+
+    csv_filename = "hourly.csv" if myfilter == "hourly" else "daily.csv"
     convert_to_csv(data_hr["test"]["time"].flatten(), data_hr["test"]["sealevel"].flatten(), csv_filename)
+    # string 'test' is used throughout as a placeholder for the station channel, for testing purposes
+    if myfilter == "hourly":
+        convert_to_csv(data_hr["test"]["time"].flatten(), data_hr["test"]["sealevel"].flatten(), csv_filename)
+    else:
+        ch_params = [{'test': 0}]
+        hourly_merged = channel_merge(data_hr, ch_params)
+        data_day = day_119filt(hourly_merged, _lat=21)
+        convert_to_csv(data_day["time"].flatten(), data_day["sealevel"].flatten(), csv_filename)
+
     if os.path.exists(csv_filename):
         return FileResponse(csv_filename, media_type="text/csv", filename=csv_filename)
     return {"error": "File not found"}
@@ -62,7 +81,6 @@ def csv_to_obj(csv_file):
                     "station": '014'
                     }
            }
-    print ("RADI", obj)
     return obj
 
 
