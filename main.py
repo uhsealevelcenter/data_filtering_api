@@ -32,7 +32,7 @@ async def root(request: Request):
 @app.post('/', response_class=HTMLResponse)
 # async def post_basic_form(request: Request, username: str = Form(...), password: str = Form(...),
 #                           file: UploadFile = File(...)):
-async def post_basic_form(request: Request, file: UploadFile = File(...), myfilter: str = Form(...)):
+async def post_basic_form(request: Request, file: UploadFile = File(...), myfilter: str = Form(...), timeformat: str = Form(...)):
     # if password != os.environ.get('PASS') or len(password) == 0:
     #     return templates.TemplateResponse("invalid-input.html", {"request": request, "message": "Incorrect password"})
 
@@ -48,15 +48,25 @@ async def post_basic_form(request: Request, file: UploadFile = File(...), myfilt
     data_hr = hr_process(data_obj, time_start, time_end)
 
     csv_filename = "hourly.csv" if myfilter == "hourly" else "daily.csv"
-    convert_to_csv(data_hr["test"]["time"].flatten(), data_hr["test"]["sealevel"].flatten(), csv_filename)
+    datetime_format = "matlab" if timeformat == "matlab" else "datetime"
+    # convert_to_csv(data_hr["test"]["time"].flatten(), data_hr["test"]["sealevel"].flatten(), csv_filename)
     # string 'test' is used throughout as a placeholder for the station channel, for testing purposes
+    if datetime_format == "matlab":
+        datetime = data_hr["test"]["time"].flatten().copy()
+    else:
+        datetime = [matlab2datetime(float(dt)).isoformat() for dt in data_hr["test"]["time"].flatten()]
     if myfilter == "hourly":
-        convert_to_csv(data_hr["test"]["time"].flatten(), data_hr["test"]["sealevel"].flatten(), csv_filename)
+        convert_to_csv(datetime, data_hr["test"]["sealevel"].flatten(), csv_filename)
     else:
         ch_params = [{'test': 0}]
         hourly_merged = channel_merge(data_hr, ch_params)
+        # Latitude hard coded for testing purposes
         data_day = day_119filt(hourly_merged, _lat=21)
-        convert_to_csv(data_day["time"].flatten(), data_day["sealevel"].flatten(), csv_filename)
+        if datetime_format == "matlab":
+            datetime_day = data_day["time"].flatten().copy()
+        else:
+            datetime_day = [matlab2datetime(float(dt)).isoformat() for dt in data_day["time"].flatten()]
+        convert_to_csv(datetime_day, data_day["sealevel"].flatten(), csv_filename)
 
     if os.path.exists(csv_filename):
         return FileResponse(csv_filename, media_type="text/csv", filename=csv_filename)
@@ -70,10 +80,11 @@ async def say_hello(name: str):
     return {"message": f"Hello {name}"}
 
 
-def csv_to_obj(csv_file):
+def csv_to_obj(csv_file, epoch="matlab"):
     """Given a path to a csv file, return an object that can be used for data filtering"""
     df = pd.read_csv(csv_file, sep=',', header=None)
     time = df.values.transpose()[0]
+    # if 719529 > time[0] > 820000:
     sl = df.values.transpose()[1]
     sensor = "test"
     obj = {sensor: {"time": time,
@@ -99,7 +110,7 @@ def convert_ts_to_csv(station: Station):
 def convert_to_csv(time, sl, filename="first_test.csv"):
     combined = np.vstack((time, sl)).T
     a = np.asarray(combined)
-    np.savetxt(filename, a, delimiter=",")
+    np.savetxt(filename, a, delimiter=",", fmt="%s", header="time,sealevel")
 
 
 if __name__ == "__main__":

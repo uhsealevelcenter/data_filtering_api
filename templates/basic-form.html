@@ -5,8 +5,8 @@
     </head>
     <body>
         <h1>Filter high frequency sea level data</h1>
-        <p>This is just a prototype. It requires a csv file, without a header, where first column is time (matlab epoch format).And the second column is sea level data</p>
-        <p>It returns a csv file in the same format. The data will be automatically downloaded</p>
+        <p>This is just a prototype. It requires a csv file, without a header, where first column is time (matlab epoch format). And the second column is sea level data</p>
+        <p>It returns a csv file in the same format (optionally, you the time column can be returned as ISO 8601 UTC date-time format). The data will be automatically downloaded</p>
         <form method="POST" enctype="multipart/form-data">
 <!--            <label for="username">Username:</label><br>-->
 <!--            <input type="text" name="username"><br>-->
@@ -19,6 +19,12 @@
             <label for="hourly">Hourly</label><br>
             <input type="radio" id="daily" name="myfilter" value="daily">
             <label for="daily">Daily</label><br>
+            <br>
+            <p>Choose output date-time format:</p>
+            <input type="radio" id="matlab" name="timeformat" value="matlab" checked>
+            <label for="matlab">Matlab Epoch</label><br>
+            <input type="radio" id="iso" name="timeformat" value="iso">
+            <label for="iso">ISO format string</label><br>
             <br>
             <input type="file" name="file"><br>
             <input type="submit" value="Submit">
