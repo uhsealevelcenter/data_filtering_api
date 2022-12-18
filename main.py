@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from uhslc_station_tools.extractor import load_station_data
-from uhslc_station_tools.utils import datenum2
+from uhslc_station_tools.utils import datenum2, remove_9s
 from uhslc_station_tools.filtering import matlab2datetime, hr_process, day_119filt, channel_merge
 import uvicorn
 from uhslc_station_tools.sensor import Station
@@ -49,6 +49,9 @@ async def post_basic_form(request: Request, file: UploadFile = File(...), myfilt
 
     csv_filename = "hourly.csv" if myfilter == "hourly" else "daily.csv"
     datetime_format = "matlab" if timeformat == "matlab" else "datetime"
+    sealevel = data_hr["test"]["sealevel"].flatten().copy()
+    sealevel = remove_9s(sealevel.round(0))
+
     # convert_to_csv(data_hr["test"]["time"].flatten(), data_hr["test"]["sealevel"].flatten(), csv_filename)
     # string 'test' is used throughout as a placeholder for the station channel, for testing purposes
     if datetime_format == "matlab":
@@ -56,7 +59,7 @@ async def post_basic_form(request: Request, file: UploadFile = File(...), myfilt
     else:
         datetime = [matlab2datetime(float(dt)).isoformat() for dt in data_hr["test"]["time"].flatten()]
     if myfilter == "hourly":
-        convert_to_csv(datetime, data_hr["test"]["sealevel"].flatten(), csv_filename)
+        convert_to_csv(datetime, sealevel, csv_filename)
     else:
         ch_params = [{'test': 0}]
         hourly_merged = channel_merge(data_hr, ch_params)
@@ -66,7 +69,9 @@ async def post_basic_form(request: Request, file: UploadFile = File(...), myfilt
             datetime_day = data_day["time"].flatten().copy()
         else:
             datetime_day = [matlab2datetime(float(dt)).isoformat() for dt in data_day["time"].flatten()]
-        convert_to_csv(datetime_day, data_day["sealevel"].flatten(), csv_filename)
+        sealevel = data_day["sealevel"].flatten().copy()
+        sealevel = remove_9s(sealevel.round(0))
+        convert_to_csv(datetime_day, sealevel, csv_filename)
 
     if os.path.exists(csv_filename):
         return FileResponse(csv_filename, media_type="text/csv", filename=csv_filename)
