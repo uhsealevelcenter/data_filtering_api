@@ -9,6 +9,8 @@ from fastapi.templating import Jinja2Templates
 import numpy as np
 import pandas as pd
 
+import aiofiles
+
 from uhslc_station_tools.extractor import load_station_data
 from uhslc_station_tools.utils import datenum2, remove_9s
 from uhslc_station_tools.filtering import matlab2datetime, hr_process, day_119filt, channel_merge
@@ -35,6 +37,10 @@ async def root(request: Request):
 async def post_basic_form(request: Request, file: UploadFile = File(...), myfilter: str = Form(...), timeformat: str = Form(...)):
     # if password != os.environ.get('PASS') or len(password) == 0:
     #     return templates.TemplateResponse("invalid-input.html", {"request": request, "message": "Incorrect password"})
+
+    async with aiofiles.open(file.filename, 'wb') as out_file:
+        content = await file.read()  # async read chunk
+        await out_file.write(content)  # async write chunk
 
     if not file.filename.endswith('.csv'):
         return templates.TemplateResponse("invalid-input.html", {"request": request, "message": "Invalid file type"})
