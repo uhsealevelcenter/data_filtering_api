@@ -79,6 +79,9 @@ async def post_basic_form(request: Request, file: UploadFile = File(...), myfilt
         sealevel = remove_9s(sealevel.round(0))
         convert_to_csv(datetime_day, sealevel, csv_filename)
 
+    if os.path.exists(file.filename):
+        os.remove(file.filename)
+
     if os.path.exists(csv_filename):
         return FileResponse(csv_filename, media_type="text/csv", filename=csv_filename)
     return {"error": "File not found"}
